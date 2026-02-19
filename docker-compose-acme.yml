@@ -1,0 +1,49 @@
+# Sample override enabling Traefik HTTPS via Let's Encrypt (ACME)
+# Place this next to your docker-compose.yml. Docker Compose will auto-load it.
+
+services:
+  api:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=frontend"
+      - "traefik.http.routers.api.rule=PathPrefix(`/api`) || PathPrefix(`/docs`) || Path(`/openapi.json`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls.certresolver=le"
+      - "traefik.http.routers.api.priority=100"
+      - "traefik.http.services.api.loadbalancer.server.port=8000"
+
+  webapp:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.routers.webapp.tls.certresolver=le"
+      - "traefik.http.routers.webapp.priority=1"
+      - "traefik.http.services.webapp.loadbalancer.server.port=80"
+
+  traefik:
+    # Expose HTTP and HTTPS on the host
+    ports:
+      - "80:80"
+      - "443:443"
+    # Persist ACME certificates
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik:/traefik
+    # Enable HTTPS, redirect HTTP->HTTPS, and configure ACME
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.web.http.redirections.entryPoint.to=websecure
+      - --entrypoints.web.http.redirections.entryPoint.scheme=https
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?error}
+      - --certificatesresolvers.le.acme.storage=/traefik/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.caserver=${ACME_CASERVER:-https://acme-v02.api.letsencrypt.org/directory}
+      - --ping=true
+
+volumes:
+  traefik:

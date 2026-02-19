@@ -1,0 +1,14 @@
+# Sample override enabling phpmyadmin on port 8081
+# Place this next to your docker-compose.yml. Docker Compose will auto-load it.
+services:
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    restart: always
+    ports:
+        - 8081:80
+    environment:
+        - PMA_ARBITRARY=1
+        - PMA_HOSTS=mariadb
+    networks:
+      - backend

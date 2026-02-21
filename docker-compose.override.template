@@ -2,4 +2,4 @@
 
 include:
 # - docker-compose-acme.yml # uncomment this line to use it
-# - docker-compose-phpmyadmin.yml # uncomment this line to use it
+# - docker-compose-pgadmin.yml # uncomment this line to use it

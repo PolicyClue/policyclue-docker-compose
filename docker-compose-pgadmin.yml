@@ -1,0 +1,15 @@
+# Sample override enabling pgAdmin on port 8081
+# Place this next to your docker-compose.yml. Docker Compose will auto-load it.
+services:
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    ports:
+      - 8081:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@policyclue.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    networks:
+      - backend

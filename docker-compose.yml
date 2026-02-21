@@ -1,11 +1,11 @@
 ---
 include:
 # - docker-compose-acme.yml # uncomment this line to use it
-# - docker-compose-phpmyadmin.yml # uncomment this line to use it
+# - docker-compose-pgadmin.yml # uncomment this line to use it
 
 # define envs for logic containers
 x-policyclue-envs: &policyclue_envs
-  DATABASE_URL: mysql+pymysql://pclue:${PCLUE_DB_PW:?error}@db:3306/policycluedb
+  DATABASE_URL: postgresql+psycopg2://pclue:${PCLUE_DB_PW:?error}@db:5432/policycluedb
 
   ELASTICSEARCH_URL: http://elasticsearch:9200
   ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD:?error}
@@ -86,27 +86,23 @@ services:
       timeout: 5s
       retries: 30
   db:
-    image: mariadb:11
-    container_name: mariadb
+    image: postgres:17-alpine
+    container_name: postgres
     restart: unless-stopped
     networks:
       - backend
     environment:
-      MARIADB_RANDOM_ROOT_PASSWORD: 1
-      MARIADB_DATABASE: policycluedb
-      MARIADB_USER: pclue
-      MARIADB_PASSWORD: ${PCLUE_DB_PW:?error}
+      POSTGRES_DB: policycluedb
+      POSTGRES_USER: pclue
+      POSTGRES_PASSWORD: ${PCLUE_DB_PW:?error}
     volumes:
-      - mariadb-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    # Minimal capabilities for entrypoint to traverse and adjust /var/lib/mysql
-    # while keeping other privileges dropped.
     cap_add:
       - DAC_OVERRIDE
-      - DAC_READ_SEARCH
       - CHOWN
       - FOWNER
       - SETGID
@@ -114,10 +110,11 @@ services:
     read_only: false
     tmpfs:
       - /tmp
+      - /run/postgresql
     healthcheck:
-      test: [ "CMD", "healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized" ]
-      interval: 20s
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U pclue -d policycluedb"]
+      interval: 10s
+      timeout: 5s
       retries: 10
 
   redis:
@@ -209,6 +206,31 @@ services:
       api:
         condition: service_healthy
 
+  worker_send_mailqueue:
+    <<: *policyclue_defaults
+    container_name: worker_send_mailqueue
+    networks:
+      - backend
+    entrypoint: ["sh", "-c", "python3 worker.py send_mailqueue"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  worker_sync_vulnerabilities:
+    <<: *policyclue_defaults
+    container_name: worker_sync_vulnerabilities
+    restart: "no"
+    networks:
+      - backend
+    entrypoint: ["sh", "-c", "python3 worker.py sync_vulnerabilities"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
   webapp:
     image: registry.khost.ch/policyclue/webapp:latest
     container_name: webapp
@@ -271,7 +293,7 @@ services:
         condition: service_started
 
 volumes:
-  mariadb-data:
+  postgres-data:
   es-data:
 
 networks:

@@ -30,6 +30,13 @@ x-policyclue-envs: &policyclue_envs
 
   TZ: ${TIMEZONE:-Europe/Zurich}
 
+  # PostgreSQL connection-pool tuning
+  DB_ASYNC_POOL_SIZE: ${DB_ASYNC_POOL_SIZE:-30}
+  DB_ASYNC_MAX_OVERFLOW: ${DB_ASYNC_MAX_OVERFLOW:-60}
+  DB_SYNC_POOL_SIZE: ${DB_SYNC_POOL_SIZE:-2}
+  DB_SYNC_MAX_OVERFLOW: ${DB_SYNC_MAX_OVERFLOW:-3}
+  DB_POOL_TIMEOUT: ${DB_POOL_TIMEOUT:-30}
+
   DEBUG: 0
 
 # define global settings for all swissp containers
@@ -89,6 +96,7 @@ services:
     image: postgres:17-alpine
     container_name: postgres
     restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=200"]
     networks:
       - backend
     environment:

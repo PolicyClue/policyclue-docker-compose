@@ -249,7 +249,19 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
-        
+
+  worker_phishing_triage:
+    <<: *policyclue_defaults
+    container_name: worker_phishing_triage
+    networks:
+      - backend
+    entrypoint: ["sh", "-c", "python3 worker.py phishing_triage"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
   worker_scan_pii:
     <<: *policyclue_defaults
     container_name: worker_scan_pii

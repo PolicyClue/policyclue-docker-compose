@@ -32,6 +32,7 @@ x-policyclue-envs: &policyclue_envs
   BAS_HOSTNAMES: ${BAS_HOSTNAMES:-}
 
   LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-120}
+  LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-16384}
   OVERRIDE_LLM_BASE_URL: ${OVERRIDE_LLM_BASE_URL:-}
   OVERRIDE_LLM_API_KEY: ${OVERRIDE_LLM_API_KEY:-}
   OVERRIDE_LLM_MODEL: ${OVERRIDE_LLM_MODEL:-}
@@ -194,18 +195,6 @@ services:
     networks:
       - backend
     entrypoint: ["sh", "-c", "python3 worker.py sync_hostlists"]
-    depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-
-  worker_check_licenseusages:
-    <<: *policyclue_defaults
-    container_name: worker_check_licenseusages
-    networks:
-      - backend
-    entrypoint: ["sh", "-c", "python3 worker.py check_licenseusages"]
     depends_on:
       db:
         condition: service_healthy
